@@ -69,7 +69,7 @@
     "@types/react-dom": "^18.2.15",
     "@types/ws": "^8.5.8",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
-    "@typescript-eslint/parser": "^6.10.0",
+    "@typescript-eslint/parser": "^8.39.1",
     "@vitejs/plugin-react": "^4.1.1",
     "autoprefixer": "^10.4.16",
     "cross-env": "^7.0.3",
