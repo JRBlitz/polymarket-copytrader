@@ -50,7 +50,7 @@ const preload = path.join(__dirname, '../preload/index.js')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 // Normalize and validate private key or mnemonic input
-function parseWalletFromInput(input: string): ethers.Wallet {
+function parseWalletFromInput(input: string): ethers.Wallet | ethers.HDNodeWallet {
   const raw = (input ?? '').trim()
   if (!raw) throw new Error('Empty private key')
   // Strip surrounding quotes if pasted
@@ -366,6 +366,7 @@ ipcMain.handle('copytrader:start', async (_e: IpcMainInvokeEvent, payload: {
   executionMode: 'percent' | 'fixed'
   fixedSize: number
   sellAllOnSell: boolean
+  clobBaseUrl?: string
 }) => {
   if (!win) throw new Error('Window not ready')
   const privateKey = await getPrivateKeyFromKeychain()
@@ -380,6 +381,7 @@ ipcMain.handle('copytrader:start', async (_e: IpcMainInvokeEvent, payload: {
     dryRun: payload.dryRun,
     clobApiKey: apiKey ?? undefined,
     apiCreds: apiCreds ?? undefined,
+    clobBaseUrl: payload.clobBaseUrl || 'https://clob.polymarket.com',
   })
   service?.stop()
   service = new CopyTraderService(win, gamma, mk, payload)

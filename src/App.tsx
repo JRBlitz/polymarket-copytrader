@@ -3,6 +3,15 @@ import './App.css'
 
 type LogMsg = { message: string; time: number }
 
+type TestResult = {
+  ok: boolean
+  gammaOk: boolean
+  rpcOk: boolean
+  walletValid: boolean
+  chosenGammaBaseUrl?: string
+  gammaError?: string
+}
+
 function Section(props: { title: string; children: React.ReactNode }) {
   return (
     <div className='card' style={{ display: 'grid', gap: 12 }}>
@@ -15,6 +24,7 @@ function Section(props: { title: string; children: React.ReactNode }) {
 function App() {
   const [gammaBaseUrl, setGammaBaseUrl] = useState('https://data-api.polymarket.com')
   const [rpcUrl, setRpcUrl] = useState('https://polygon-rpc.com')
+  const [clobBaseUrl, setClobBaseUrl] = useState('https://clob.polymarket.com')
   const [targets, setTargets] = useState('')
   const [copyFactor, setCopyFactor] = useState(1)
   const [maxSlippageBps, setMaxSlippageBps] = useState(100)
@@ -29,6 +39,7 @@ function App() {
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [logs, setLogs] = useState<LogMsg[]>([])
   const [running, setRunning] = useState(false)
+  const [testResult, setTestResult] = useState<TestResult | null>(null)
 
   useEffect(() => {
     try {
@@ -39,7 +50,7 @@ function App() {
   }, [])
 
   const targetAddresses = useMemo(() => (
-    targets.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+    targets.split(/[\,\s]+/).map(s => s.trim()).filter(Boolean)
   ), [targets])
 
   async function handleSaveKey() {
@@ -74,9 +85,10 @@ function App() {
   }
 
   async function handleStart() {
-    const ok = await window.copyTrader.start({
+    const res = await window.copyTrader.start({
       gammaBaseUrl,
       rpcUrl,
+      clobBaseUrl,
       targetAddresses,
       copyFactor,
       maxSlippageBps,
@@ -86,7 +98,7 @@ function App() {
       fixedSize,
       sellAllOnSell,
     })
-    if (ok) setRunning(true)
+    if (res?.ok) setRunning(true)
   }
 
   async function handleStop() {
@@ -97,13 +109,35 @@ function App() {
   async function handleTest() {
     const first = targetAddresses[0]
     const r = await window.copyTrader.test({ gammaBaseUrl, rpcUrl, targetAddress: first })
+    setTestResult(r as TestResult)
     setApiStatus(`gamma:${r.gammaOk} rpc:${r.rpcOk} wallet:${r.walletValid} base:${r.chosenGammaBaseUrl ?? ''} ${r.gammaError ?? ''}`)
+  }
+
+  function StatusChip(props: { ok: boolean; label: string }) {
+    return (
+      <span style={{
+        padding: '4px 8px',
+        borderRadius: 999,
+        fontSize: 12,
+        background: props.ok ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+        color: props.ok ? '#10b981' : '#ef4444',
+        border: `1px solid ${props.ok ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+      }}>{props.label}</span>
+    )
   }
 
   return (
     <div className='App' style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-      <h2 style={{ fontSize: 28, marginBottom: 8 }}>Polymarket Copytrader Pro</h2>
-      <p style={{ marginTop: 0, marginBottom: 16, opacity: 0.8 }}>Configure and run copy trading from your desktop.</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 28, marginBottom: 4 }}>Polymarket Copytrader Pro</h2>
+          <p style={{ marginTop: 0, marginBottom: 8, opacity: 0.8 }}>Configure and run copy trading from your desktop.</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <StatusChip ok={running} label={running ? 'Running' : 'Stopped'} />
+          {!dryRun && <span style={{ fontSize: 12, color: '#ef4444' }}>Live trading enabled</span>}
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gap: 8, padding: 12, border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, marginBottom: 16, background: 'rgba(0,0,0,0.03)' }}>
         <div style={{ fontWeight: 600 }}>Quick Setup: Private Key</div>
@@ -149,6 +183,10 @@ function App() {
             <input value={gammaBaseUrl} onChange={e => setGammaBaseUrl(e.target.value)} placeholder='https://data-api.polymarket.com' />
           </label>
           <label style={{ display: 'grid', gap: 6 }}>
+            <span>CLOB Base URL</span>
+            <input value={clobBaseUrl} onChange={e => setClobBaseUrl(e.target.value)} placeholder='https://clob.polymarket.com' />
+          </label>
+          <label style={{ display: 'grid', gap: 6 }}>
             <span>RPC URL</span>
             <input value={rpcUrl} onChange={e => setRpcUrl(e.target.value)} placeholder='https://polygon-rpc.com' />
           </label>
@@ -192,7 +230,19 @@ function App() {
           <button onClick={handleStart} disabled={running || targetAddresses.length === 0}>Start</button>
           <button onClick={handleStop} disabled={!running}>Stop</button>
           <button onClick={handleTest}>Test Connectivity</button>
+          {testResult && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <StatusChip ok={!!testResult.gammaOk} label={testResult.gammaOk ? 'Data API OK' : 'Data API Failed'} />
+              <StatusChip ok={!!testResult.rpcOk} label={testResult.rpcOk ? 'RPC OK' : 'RPC Failed'} />
+              <StatusChip ok={!!testResult.walletValid} label={testResult.walletValid ? 'Wallet OK' : 'Wallet Invalid'} />
+            </div>
+          )}
         </div>
+        {!dryRun && (
+          <div style={{ marginTop: 8, padding: 8, borderRadius: 8, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.12)', color: '#ef4444', fontSize: 12 }}>
+            Live orders will be submitted. Double-check your settings before starting.
+          </div>
+        )}
       </Section>
 
       <Section title='Logs'>

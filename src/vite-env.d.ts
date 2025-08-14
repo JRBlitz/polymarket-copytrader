@@ -21,6 +21,7 @@ interface Window {
       executionMode: 'percent' | 'fixed'
       fixedSize: number
       sellAllOnSell: boolean
+      clobBaseUrl?: string
     }) => Promise<{ ok: boolean }>
     stop: () => Promise<{ ok: boolean }>
     hasKey: () => Promise<{ has: boolean }>
