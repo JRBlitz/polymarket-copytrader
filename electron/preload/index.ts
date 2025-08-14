@@ -30,6 +30,7 @@ type StartPayload = {
   executionMode: 'percent' | 'fixed'
   fixedSize: number
   sellAllOnSell: boolean
+  clobBaseUrl?: string
 }
 
 contextBridge.exposeInMainWorld('copyTrader', {
