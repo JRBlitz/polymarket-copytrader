@@ -74,7 +74,7 @@ The system is built with a modern, scalable architecture that separates concerns
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/polymarket-copytrader.git
+   git clone https://github.com/JRBlitz/polymarket-copytrader.git
    cd polymarket-copytrader
    ```
 
